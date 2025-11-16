@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring Usaha Hidroponik</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="page active">
+        <div class="login-container">
+            <div class="login-box">
+                <h1>
+                    <img src="logo.png" alt="Logo Hidroponik" style="height: 40px; vertical-align: middle; margin-right: 10px;">
+                    NAH Monitoring
+                </h1>
+                <p class="subtitle">Sistem Manajemen Produksi</p>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="role">Jabatan</label>
+                        <select id="role" required>
+                            <option value="">Pilih Jabatan</option>
+                            <option value="supervisor">Supervisor</option>
+                            <option value="operator">Operator</option>
+                            <option value="staff">Staff</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Masuk</button>
+                </form>
+                <div id="loginError" class="error-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Page -->
+    <div id="dashboardPage" class="page">
+        <header class="header">
+            <div class="header-content">
+                <h1>
+                    <img src="logo.png" alt="Logo Hidroponik" style="height: 32px; vertical-align: middle; margin-right: 10px;">
+                    Dashboard Monitoring Hidroponik
+                </h1>
+                <div class="user-info">
+                    <span id="currentUser"></span>
+                    <span class="badge" id="currentRole"></span>
+                    <button id="logoutBtn" class="btn btn-secondary">Keluar</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Statistics Cards -->
+            <section class="stats-section">
+                <div class="stat-card">
+                    <div class="stat-icon">🌱</div>
+                    <div class="stat-info">
+                        <h3 id="totalProduksi">0</h3>
+                        <p>Total Produksi</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-info">
+                        <h3 id="totalSukses">0</h3>
+                        <p>Sukses</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⚠️</div>
+                    <div class="stat-info">
+                        <h3 id="totalGagal">0</h3>
+                        <p>Gagal</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-info">
+                        <h3 id="totalBerlangsung">0</h3>
+                        <p>Berlangsung</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tracker-section">
+                <div class="section-header">
+                    <h2>📋 Tracker Produksi</h2>
+                    <button id="addProductionBtn" class="btn btn-primary" hidden>
+                        + Tambah Produksi
+                    </button>
+                </div>
+
+                <!-- Filter -->
+                <div class="filter-section">
+                    <label for="statusFilter">Filter Status:</label>
+                    <select id="statusFilter">
+                        <option value="all">Semua Status</option>
+                        <option value="semai">Semai</option>
+                        <option value="penjemuran">Penjemuran</option>
+                        <option value="pembibitan">Pembibitan</option>
+                        <option value="peremajaan">Peremajaan</option>
+                        <option value="pembesaran">Pembesaran</option>
+                        <option value="panen">Panen</option>
+                        <option value="sukses">Sukses</option>
+                        <option value="gagal">Gagal</option>
+                    </select>
+                </div>
+
+                <!-- Tabel -->
+                <div class="table-container">
+                    <table id="productionTable" class="production-table">
+                        <thead>
+                            <tr>
+                                <th scope="col" rowspan="2">ID</th>
+                                <th scope="col" rowspan="2">Nama Produksi</th>
+                                <th scope="col" rowspan="2">Tanggal Mulai</th>
+                                <th scope="col" rowspan="2">Status</th>
+                                <th scope="col" rowspan="2">Catatan</th>
+                                <th scope="col" colspan="2">Monitoring Nutrisi</th>
+                                <th scope="col" rowspan="2" id="actionHeader" class="action-col" hidden>Aksi</th>
+                            </tr>
+                            <tr class="subhead">
+                                <th scope="col">Jenis</th>
+                                <th scope="col">Jumlah</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productionTableBody"><!-- diisi oleh JS --></tbody>
+                    </table>
+                </div>
+            </section>
+  
+            <!-- Task Monitoring Section -->
+            <section class="tracker-section">
+                <div class="section-header">
+                    <h2>👥 Monitoring Tugas Tim</h2>
+                    <button id="addTaskBtn" class="btn btn-primary" style="display: none;">
+                        + Tambah Tugas
+                    </button>
+                </div>
+
+                <!-- Task Statistics -->
+                <div class="task-stats">
+                    <div class="task-stat-card">
+                        <div class="task-stat-icon">📝</div>
+                        <div class="task-stat-info">
+                            <h3 id="totalTaskBelum">0</h3>
+                            <p>Belum Dikerjakan</p>
+                        </div>
+                    </div>
+                    <div class="task-stat-card">
+                        <div class="task-stat-icon">⏳</div>
+                        <div class="task-stat-info">
+                            <h3 id="totalTaskSedang">0</h3>
+                            <p>Sedang Dikerjakan</p>
+                        </div>
+                    </div>
+                    <div class="task-stat-card">
+                        <div class="task-stat-icon">✅</div>
+                        <div class="task-stat-info">
+                            <h3 id="totalTaskSelesai">0</h3>
+                            <p>Selesai Dikerjakan</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Task Filter Section -->
+                <div class="filter-section">
+                    <label for="taskStatusFilter">Filter Status Tugas:</label>
+                    <select id="taskStatusFilter">
+                        <option value="all">Semua Status</option>
+                        <option value="belum">Belum Dikerjakan</option>
+                        <option value="sedang">Sedang Dikerjakan</option>
+                        <option value="selesai">Selesai Dikerjakan</option>
+                    </select>
+                </div>
+
+                <!-- Task Table -->
+                <div class="table-container">
+                    <table id="taskTable" class="production-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Judul Tugas</th>
+                                <th>Ditugaskan Kepada</th>
+                                <th>Tanggal Deadline</th>
+                                <th>Status</th>
+                                <th>Keterangan</th>
+                                <th id="taskActionHeader" style="display: none;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="taskTableBody">
+                            <!-- Data akan diisi oleh JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Inventory Section -->
+            <section class="tracker-section">
+                <div class="section-header">
+                    <h2>📦 Inventaris Bahan Produksi</h2>
+                    <button id="addInventoryBtn" class="btn btn-primary" style="display: none;">
+                        + Tambah Bahan
+                    </button>
+                </div>
+
+                <!-- Inventory Statistics -->
+                <div class="inventory-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-info">
+                            <h3 id="totalBahan">0</h3>
+                            <p>Total Bahan</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⚠️</div>
+                        <div class="stat-info">
+                            <h3 id="stokRendah">0</h3>
+                            <p>Stok Rendah</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-info">
+                            <h3 id="stokCukup">0</h3>
+                            <p>Stok Cukup</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inventory Filter Section -->
+                <div class="filter-section">
+                    <label for="inventoryCategoryFilter">Filter Kategori:</label>
+                    <select id="inventoryCategoryFilter">
+                        <option value="all">Semua Kategori</option>
+                        <option value="nutrisi">Nutrisi AB Mix</option>
+                        <option value="benih">Benih</option>
+                        <option value="media">Media Tanam</option>
+                    </select>
+                    <input type="text" id="inventorySearch" placeholder="Cari nama bahan..." style="margin-left: 15px; padding: 8px 12px; border: 2px solid var(--border-color); border-radius: 6px; width: 250px;">
+                </div>
+
+                <!-- Inventory Table -->
+                <div class="table-container">
+                    <table id="inventoryTable" class="production-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nama Bahan</th>
+                                <th>Kategori</th>
+                                <th>Stok Awal</th>
+                                <th>Pemakaian</th>
+                                <th>Stok Tersisa</th>
+                                <th>Satuan</th>
+                                <th>Status</th>
+                                <th id="inventoryActionHeader" style="display: none;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTableBody">
+                            <!-- Data akan diisi oleh JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Add/Edit Production Modal -->
+    <div id="productionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Tambah Produksi Baru</h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="productionForm">
+                <div class="form-group">
+                    <label for="productionName">Nama Produksi</label>
+                    <input type="text" id="productionName" required>
+                </div>
+                <div class="form-group">
+                    <label for="productionDate">Tanggal Mulai</label>
+                    <input type="date" id="productionDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="productionStatus">Status</label>
+                    <select id="productionStatus" required>
+                        <option value="semai">Semai</option>
+                        <option value="penjemuran">Penjemuran</option>
+                        <option value="pembibitan">Pembibitan</option>
+                        <option value="peremajaan">Peremajaan</option>
+                        <option value="pembesaran">Pembesaran</option>
+                        <option value="panen">Panen</option>
+                        <option value="sukses">Sukses</option>
+                        <option value="gagal">Gagal</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="productionNotes">Catatan</label>
+                    <textarea id="productionNotes" rows="3"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Task Modal -->
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="taskModalTitle">Tambah Tugas Baru</h2>
+                <span class="close-task">&times;</span>
+            </div>
+            <form id="taskForm">
+                <div class="form-group">
+                    <label for="taskTitle">Judul Tugas</label>
+                    <input type="text" id="taskTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="taskAssignee">Ditugaskan Kepada</label>
+                    <input type="text" id="taskAssignee" required placeholder="Nama staff/operator">
+                </div>
+                <div class="form-group">
+                    <label for="taskDeadline">Tanggal Deadline</label>
+                    <input type="date" id="taskDeadline" required>
+                </div>
+                <div class="form-group">
+                    <label for="taskStatus">Status</label>
+                    <select id="taskStatus" required>
+                        <option value="belum">Belum Dikerjakan</option>
+                        <option value="sedang">Sedang Dikerjakan</option>
+                        <option value="selesai">Selesai Dikerjakan</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="taskDescription">Keterangan</label>
+                    <textarea id="taskDescription" rows="3" placeholder="Deskripsi tugas..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelTaskBtn">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Inventory Modal -->
+    <div id="inventoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="inventoryModalTitle">Tambah Bahan Baru</h2>
+                <span class="close-inventory">&times;</span>
+            </div>
+            <form id="inventoryForm">
+                <div class="form-group">
+                    <label for="inventoryName">Nama Bahan</label>
+                    <input type="text" id="inventoryName" required placeholder="Contoh: Nutrisi AB Mix Premium">
+                </div>
+                <div class="form-group">
+                    <label for="inventoryCategory">Kategori</label>
+                    <select id="inventoryCategory" required>
+                        <option value="">Pilih Kategori</option>
+                        <option value="nutrisi">Nutrisi AB Mix</option>
+                        <option value="benih">Benih</option>
+                        <option value="media">Media Tanam</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="inventoryInitialStock">Stok Awal</label>
+                    <input type="number" id="inventoryInitialStock" required min="0" step="0.01" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label for="inventoryUnit">Satuan</label>
+                    <input type="text" id="inventoryUnit" required placeholder="Contoh: kg, liter, pack, dll">
+                </div>
+                <div class="form-group">
+                    <label for="inventoryUsage">Pemakaian</label>
+                    <input type="number" id="inventoryUsage" min="0" step="0.01" placeholder="0" value="0">
+                    <small style="color: var(--text-light); display: block; margin-top: 5px;">Isi 0 jika belum ada pemakaian</small>
+                </div>
+                <div class="form-group">
+                    <label for="inventoryMinStock">Stok Minimum (Peringatan)</label>
+                    <input type="number" id="inventoryMinStock" min="0" step="0.01" placeholder="0" value="0">
+                    <small style="color: var(--text-light); display: block; margin-top: 5px;">Akan muncul peringatan jika stok di bawah nilai ini</small>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelInventoryBtn">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Update Usage Modal -->
+    <div id="updateUsageModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Update Pemakaian Bahan</h2>
+                <span class="close-usage">&times;</span>
+            </div>
+            <form id="updateUsageForm">
+                <div class="form-group">
+                    <label>Nama Bahan</label>
+                    <input type="text" id="updateUsageName" readonly style="background-color: var(--light-bg);">
+                </div>
+                <div class="form-group">
+                    <label>Stok Tersisa Saat Ini</label>
+                    <input type="text" id="updateUsageCurrentStock" readonly style="background-color: var(--light-bg);">
+                </div>
+                <div class="form-group">
+                    <label for="updateUsageAmount">Jumlah Pemakaian</label>
+                    <input type="number" id="updateUsageAmount" required min="0" step="0.01" placeholder="0">
+                    <small style="color: var(--text-light); display: block; margin-top: 5px;">Jumlah yang akan ditambahkan ke total pemakaian</small>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelUsageBtn">Batal</button>
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
