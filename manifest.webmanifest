@@ -1,0 +1,21 @@
+{
+  "name": "NAH Monitoring",
+  "short_name": "NAH",
+  "description": "Dashboard monitoring produksi hidroponik NAH yang dapat di-instal sebagai aplikasi.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f8f9fa",
+  "theme_color": "#2d8659",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
