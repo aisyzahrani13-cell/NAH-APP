@@ -1,13 +1,21 @@
+const $ = (id) => document.getElementById(id);
+
 // Application State
 let currentUser = null;
 let currentRole = null;
-let productionData = [];␊
+let productionData = [];
 let taskData = [];
 let inventoryData = [];
-let editingId = null;
+let editingProductionId = null;
 let editingTaskId = null;
 let editingInventoryId = null;
-let updatingUsageId = null;
+
+const STORAGE_KEYS = {
+    session: 'nah-session',
+    production: 'productionData',
+    tasks: 'taskData',
+    inventory: 'inventoryData'
+};
 
 // Default users for demo (in production, this should be server-side authentication)
 const defaultUsers = {
@@ -38,7 +46,6 @@ const rolePermissions = {
     }
 };
 
-// Production Statuses
 const productionStatuses = {
     semai: 'Semai',
     penjemuran: 'Penjemuran',
@@ -50,185 +57,272 @@ const productionStatuses = {
     gagal: 'Gagal'
 };
 
-// Function to safely parse JSON or fallback array
-function getParsedArrayLS(key) {
-    let data;
+const taskStatusLabels = {
+    belum: 'Belum Dikerjakan',
+    sedang: 'Sedang Dikerjakan',
+    selesai: 'Selesai Dikerjakan'
+};
+
+// DOM References
+const loginPage = $('loginPage');
+const dashboardPage = $('dashboardPage');
+const loginForm = $('loginForm');
+const loginError = $('loginError');
+const usernameInput = $('username');
+const passwordInput = $('password');
+const roleSelect = $('role');
+const currentUserEl = $('currentUser');
+const currentRoleEl = $('currentRole');
+const logoutBtn = $('logoutBtn');
+
+const totalProduksiEl = $('totalProduksi');
+const totalSuksesEl = $('totalSukses');
+const totalGagalEl = $('totalGagal');
+const totalBerlangsungEl = $('totalBerlangsung');
+const totalTaskBelumEl = $('totalTaskBelum');
+const totalTaskSedangEl = $('totalTaskSedang');
+const totalTaskSelesaiEl = $('totalTaskSelesai');
+const totalBahanEl = $('totalBahan');
+const stokRendahEl = $('stokRendah');
+const stokCukupEl = $('stokCukup');
+
+const addProductionBtn = $('addProductionBtn');
+const addTaskBtn = $('addTaskBtn');
+const addInventoryBtn = $('addInventoryBtn');
+const statusFilter = $('statusFilter');
+const taskStatusFilter = $('taskStatusFilter');
+const inventoryCategoryFilter = $('inventoryCategoryFilter');
+const inventorySearchInput = $('inventorySearch');
+
+const productionTableBody = $('productionTableBody');
+const taskTableBody = $('taskTableBody');
+const inventoryTableBody = $('inventoryTableBody');
+const productionActionHeader = $('actionHeader');
+const taskActionHeader = $('taskActionHeader');
+const inventoryActionHeader = $('inventoryActionHeader');
+
+const productionModal = $('productionModal');
+const productionForm = $('productionForm');
+const productionModalClose = productionModal?.querySelector('.close');
+const productionCancelBtn = $('cancelBtn');
+
+const taskModal = $('taskModal');
+const taskForm = $('taskForm');
+const taskModalClose = taskModal?.querySelector('.close-task');
+const taskCancelBtn = $('cancelTaskBtn');
+
+const inventoryModal = $('inventoryModal');
+const inventoryForm = $('inventoryForm');
+const inventoryModalClose = inventoryModal?.querySelector('.close-inventory');
+const inventoryCancelBtn = $('cancelInventoryBtn');
+
+// Utility helpers
+const persistArray = (key, data) => localStorage.setItem(key, JSON.stringify(data));
+const loadArray = (key) => {
     try {
-        data = JSON.parse(localStorage.getItem(key));
-        if (!Array.isArray(data)) data = [];
+        const parsed = JSON.parse(localStorage.getItem(key));
+        return Array.isArray(parsed) ? parsed : [];
     } catch {
-        data = [];
+        return [];
     }
-    return data;
-}
+};
 
-// Initialize state from localStorage or empty array if not found
-productionData = getParsedArrayLS('productionData');
-taskData = getParsedArrayLS('taskData');
-inventoryData = getParsedArrayLS('inventoryData');
+function seedData() {
+    productionData = loadArray(STORAGE_KEYS.production);
+    taskData = loadArray(STORAGE_KEYS.tasks);
+    inventoryData = loadArray(STORAGE_KEYS.inventory);
 
-function normalizeProductionData(data) {
-    let shouldPersist = false;
-    const normalized = data.map(item => {
-        const updatedItem = { ...item };
-        if (!('nutrientType' in updatedItem)) {
-            updatedItem.nutrientType = '';
-            shouldPersist = true;
-        }
-        if (!('nutrientAmount' in updatedItem)) {
-            updatedItem.nutrientAmount = 0;
-            shouldPersist = true;
-        }
-        return updatedItem;
-    });
-
-    if (shouldPersist) {
-        localStorage.setItem('productionData', JSON.stringify(normalized));
+    if (productionData.length === 0) {
+        productionData = [
+            {
+                id: 1,
+                name: 'Selada Hidroponik Batch 1',
+                date: '2024-01-15',
+                status: 'semai',
+                notes: 'Produksi selada dalam sistem NFT',
+                nutrientType: 'AB Mix Premium',
+                nutrientAmount: 1.5
+            },
+            {
+                id: 2,
+                name: 'Bayam Hidroponik Batch 1',
+                date: '2024-01-20',
+                status: 'pembibitan',
+                notes: 'Proses pembibitan dalam media rockwool',
+                nutrientType: 'AB Mix Premium',
+                nutrientAmount: 1.2
+            },
+            {
+                id: 3,
+                name: 'Kangkung Hidroponik Batch 1',
+                date: '2024-01-10',
+                status: 'panen',
+                notes: 'Siap dipanen minggu depan',
+                nutrientType: 'AB Mix Reguler',
+                nutrientAmount: 1.8
+            },
+            {
+                id: 4,
+                name: 'Pakcoy Hidroponik Batch 1',
+                date: '2024-01-25',
+                status: 'sukses',
+                notes: 'Produksi berhasil dengan hasil panen optimal',
+                nutrientType: 'AB Mix Premium',
+                nutrientAmount: 2
+            },
+            {
+                id: 5,
+                name: 'Sawi Hidroponik Batch 1',
+                date: '2024-02-01',
+                status: 'gagal',
+                notes: 'Gagal karena masalah nutrisi',
+                nutrientType: 'AB Mix Reguler',
+                nutrientAmount: 1
+            }
+        ];
+        persistArray(STORAGE_KEYS.production, productionData);
     }
 
-    return normalized;
+    if (taskData.length === 0) {
+        taskData = [
+            {
+                id: 1,
+                title: 'Pemeliharaan sistem NFT',
+                assignee: 'Staff A',
+                deadline: '2024-02-15',
+                status: 'belum',
+                description: 'Melakukan pengecekan sistem NFT untuk batch selada'
+            },
+            {
+                id: 2,
+                title: 'Penambahan nutrisi hidroponik',
+                assignee: 'Operator B',
+                deadline: '2024-02-10',
+                status: 'sedang',
+                description: 'Mengatur nutrisi pada fase pembesaran'
+            },
+            {
+                id: 3,
+                title: 'Pemanenan selada batch 1',
+                assignee: 'Staff C',
+                deadline: '2024-02-05',
+                status: 'selesai',
+                description: 'Menjamin panen sesuai standar kualitas'
+            }
+        ];
+        persistArray(STORAGE_KEYS.tasks, taskData);
+    }
+
+    if (inventoryData.length === 0) {
+        inventoryData = [
+            {
+                id: 1,
+                name: 'Nutrisi AB Mix Premium',
+                category: 'nutrisi',
+                initialStock: 50,
+                usage: 12,
+                unit: 'liter'
+            },
+            {
+                id: 2,
+                name: 'Benih Selada Hijau',
+                category: 'benih',
+                initialStock: 2000,
+                usage: 750,
+                unit: 'butir'
+            },
+            {
+                id: 3,
+                name: 'Rockwool Medium',
+                category: 'media',
+                initialStock: 300,
+                usage: 40,
+                unit: 'blok'
+            }
+        ];
+        persistArray(STORAGE_KEYS.inventory, inventoryData);
+    }
 }
 
-// Initialize sample data if empty for production
-if (productionData.length === 0) {
-    productionData = [
-        {
-            id: 1,
-            name: 'Selada Hidroponik Batch 1',
-            date: '2024-01-15',
-            status: 'semai',
-            notes: 'Produksi selada dalam sistem NFT',
-            nutrientType: 'AB Mix Premium',
-            nutrientAmount: 1.5
-        },
-        {
-            id: 2,
-            name: 'Bayam Hidroponik Batch 1',
-            date: '2024-01-20',
-            status: 'pembibitan',
-            notes: 'Proses pembibitan dalam media rockwool',
-            nutrientType: 'AB Mix Premium',
-            nutrientAmount: 1.2
-        },
-        {
-            id: 3,
-            name: 'Kangkung Hidroponik Batch 1',
-            date: '2024-01-10',
-            status: 'panen',
-            notes: 'Siap dipanen minggu depan',
-            nutrientType: 'AB Mix Reguler',
-            nutrientAmount: 1.8
-        },
-        {
-            id: 4,
-            name: 'Pakcoy Hidroponik Batch 1',
-            date: '2024-01-25',
-            status: 'sukses',
-            notes: 'Produksi berhasil dengan hasil panen optimal',
-            nutrientType: 'AB Mix Premium',
-            nutrientAmount: 2
-        },
-        {
-            id: 5,
-            name: 'Sawi Hidroponik Batch 1',
-            date: '2024-02-01',
-            status: 'gagal',
-            notes: 'Gagal karena masalah nutrisi',
-            nutrientType: 'AB Mix Reguler',
-            nutrientAmount: 1
-        }
-    ];
-    localStorage.setItem('productionData', JSON.stringify(productionData));
-}
-
-productionData = normalizeProductionData(productionData);
-
-// Initialize sample task data if empty
-if (taskData.length === 0) {
-    taskData = [
-        {
-            id: 1,
-            title: 'Pemeliharaan sistem NFT',
-            assignee: 'Staff A',
-            deadline: '2024-02-15',
-            status: 'belum',
-            description: 'Melakukan pengecekan dan pemeliharaan sistem NFT untuk batch selada'
-        },
-        {
-            id: 2,
-            title: 'Penambahan nutrisi hidroponik',
-            assignee: 'Operator B',
-            deadline: '2024-02-10',
-            status: 'sedang',
-            description: 'Menambahkan dan mengatur nutrisi untuk tanaman dalam fase pembesaran'
-        },
-        {
-            id: 3,
-            title: 'Pemanenan selada batch 1',
-            assignee: 'Staff C',
-            deadline: '2024-02-05',
-@@ -366,179 +400,199 @@ function updateStatistics() {
-}
-
-// Date Formatter with safety
 function formatDate(dateString) {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-    return date.toLocaleDateString('id-ID', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
+    if (Number.isNaN(date.getTime())) return dateString;
+    return date.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
-// Render Production Table
+function remainingStock(item) {
+    return Math.max(item.initialStock - item.usage, 0);
+}
+
+function stockStatus(item) {
+    const remaining = remainingStock(item);
+    const threshold = item.initialStock * 0.25;
+    return remaining <= threshold ? 'Perlu Restock' : 'Stok Aman';
+}
+
+function updateStatistics() {
+    if (totalProduksiEl) totalProduksiEl.textContent = productionData.length;
+    if (totalSuksesEl) totalSuksesEl.textContent = productionData.filter(p => p.status === 'sukses').length;
+    if (totalGagalEl) totalGagalEl.textContent = productionData.filter(p => p.status === 'gagal').length;
+    if (totalBerlangsungEl) {
+        totalBerlangsungEl.textContent = productionData.filter(p => !['sukses', 'gagal'].includes(p.status)).length;
+    }
+
+    const belum = taskData.filter(t => t.status === 'belum').length;
+    const sedang = taskData.filter(t => t.status === 'sedang').length;
+    const selesai = taskData.filter(t => t.status === 'selesai').length;
+    if (totalTaskBelumEl) totalTaskBelumEl.textContent = belum;
+    if (totalTaskSedangEl) totalTaskSedangEl.textContent = sedang;
+    if (totalTaskSelesaiEl) totalTaskSelesaiEl.textContent = selesai;
+
+    if (totalBahanEl) totalBahanEl.textContent = inventoryData.length;
+    const lowStock = inventoryData.filter(item => remainingStock(item) <= item.initialStock * 0.25).length;
+    if (stokRendahEl) stokRendahEl.textContent = lowStock;
+    if (stokCukupEl) stokCukupEl.textContent = inventoryData.length - lowStock;
+}
+
 function renderProductionTable(filterStatus = 'all') {
     if (!productionTableBody) return;
     productionTableBody.innerHTML = '';
     const permissions = rolePermissions[currentRole] || {};
 
-    let filteredData = productionData;
-    if (filterStatus !== 'all') {
-        filteredData = productionData.filter(p => p.status === filterStatus);
-    }
- const baseColumnCount = 7; // ID, Nama, Tanggal, Status, Catatan, Nutrisi Jenis, Nutrisi Jumlah
- const totalColumns = (permissions.canEdit || permissions.canDelete) ? baseColumnCount + 1 : baseColumnCount;
+    const filtered = filterStatus === 'all'
+        ? productionData
+        : productionData.filter(item => item.status === filterStatus);
 
- if (filteredData.length === 0) {
-        productionTableBody.innerHTML = `
-            <tr>
-                <td colspan="${totalColumns}" style="text-align: center; padding: 30px; color: var(--text-light);">
-                    Tidak ada data produksi
-                </td>
-            </tr>
-        `;
+    if (productionActionHeader) {
+        productionActionHeader.hidden = !(permissions.canEdit || permissions.canDelete);
+    }
+
+    if (filtered.length === 0) {
+        const row = document.createElement('tr');
+        const colSpan = (permissions.canEdit || permissions.canDelete) ? 8 : 7;
+        row.innerHTML = `<td colspan="${colSpan}" style="text-align:center; padding:24px; color:var(--text-light);">Tidak ada data produksi</td>`;
+        productionTableBody.appendChild(row);
         return;
     }
 
-    filteredData.forEach(production => {
+    filtered.forEach(item => {
         const row = document.createElement('tr');
-        const statusClass = production.status || '';
-        const statusText = productionStatuses[production.status] || production.status;
-        const nutrientTypeText = production.nutrientType && production.nutrientType.trim() !== ''
-            ? production.nutrientType
-            : '-';
-        const nutrientAmountText = typeof production.nutrientAmount === 'number'
-            ? `${production.nutrientAmount.toFixed(2)} liter`
-            : (production.nutrientAmount || '-');
+        const nutrientType = item.nutrientType?.trim() || '-';
+        const nutrientAmount = typeof item.nutrientAmount === 'number'
+            ? `${item.nutrientAmount.toFixed(2)} liter`
+            : (item.nutrientAmount || '-');
+        const statusLabel = productionStatuses[item.status] || item.status;
         row.innerHTML = `
-            <td>${production.id}</td>
-            <td>${production.name}</td>
-            <td>${formatDate(production.date)}</td>
-            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-            <td>${production.notes || '-'}</td>
-            <td>${nutrientTypeText}</td>
-            <td>${nutrientAmountText}</td>
-            ${(permissions.canEdit || permissions.canDelete) ? `
+            <td>${item.id}</td>
+            <td>${item.name}</td>
+            <td>${formatDate(item.date)}</td>
+            <td><span class="status-badge ${item.status}">${statusLabel}</span></td>
+            <td>${item.notes || '-'}</td>
+            <td>${nutrientType}</td>
+            <td>${nutrientAmount}</td>
+            ${permissions.canEdit || permissions.canDelete ? `
                 <td>
                     <div class="action-buttons">
-                        ${permissions.canEdit ? `<button class="btn btn-warning" onclick="editProduction(${production.id})">Edit</button>` : ''}
-                        ${permissions.canDelete ? `<button class="btn btn-danger" onclick="deleteProduction(${production.id})">Hapus</button>` : ''}
+                        ${permissions.canEdit ? `<button class="btn btn-warning" data-action="edit" data-id="${item.id}">Edit</button>` : ''}
+                        ${permissions.canDelete ? `<button class="btn btn-danger" data-action="delete" data-id="${item.id}">Hapus</button>` : ''}
                     </div>
                 </td>
             ` : ''}
@@ -237,132 +331,437 @@ function renderProductionTable(filterStatus = 'all') {
     });
 }
 
-if (statusFilter) {
-    statusFilter.addEventListener('change', (e) => {
-        renderProductionTable(e.target.value);
-    });
-}
+function renderTaskTable(filterStatus = 'all') {
+    if (!taskTableBody) return;
+    taskTableBody.innerHTML = '';
+    const permissions = rolePermissions[currentRole] || {};
 
-// Add Production Button Handler
-if (addProductionBtn) {
-    addProductionBtn.addEventListener('click', () => {
-        editingId = null;
-        if (productionForm) productionForm.reset();
-        if ($('productionDate')) $('productionDate').valueAsDate = new Date();
-        if ($('modalTitle')) $('modalTitle').textContent = 'Tambah Produksi Baru';
-        if (productionModal) productionModal.classList.add('active');
-    });
-}
-
-// Close Production Modal Handlers
-if (closeModal) {
-    closeModal.addEventListener('click', () => {
-        if (productionModal) productionModal.classList.remove('active');
-    });
-}
-if (cancelBtn) {
-    cancelBtn.addEventListener('click', () => {
-        if (productionModal) productionModal.classList.remove('active');
-    });
-}
-// Modal Overlay outside click close
-window.addEventListener('click', (e) => {
-    if (e.target === productionModal) {
-        productionModal.classList.remove('active');
+    if (taskActionHeader) {
+        taskActionHeader.style.display = (permissions.canEdit || permissions.canDelete) ? '' : 'none';
     }
-});
 
-// Production Form Handler
-if (productionForm) {
-    productionForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const name = $('productionName').value.trim();
-        const date = $('productionDate').value;
-        const status = $('productionStatus').value;
-        const notes = $('productionNotes').value;
-        const nutrientType = $('productionNutrientType').value.trim();
-        const nutrientAmount = parseFloat($('productionNutrientAmount').value) || 0;
+    const filtered = filterStatus === 'all'
+        ? taskData
+        : taskData.filter(task => task.status === filterStatus);
 
-        if (!name || !date || !status) {
-            alert('Nama, tanggal, dan status produksi wajib diisi.');
+    if (filtered.length === 0) {
+        const row = document.createElement('tr');
+        const colSpan = (permissions.canEdit || permissions.canDelete) ? 6 : 5;
+        row.innerHTML = `<td colspan="${colSpan}" style="text-align:center; padding:24px; color:var(--text-light);">Tidak ada tugas</td>`;
+        taskTableBody.appendChild(row);
+        return;
+    }
+
+    filtered.forEach(task => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${task.id}</td>
+            <td>${task.title}</td>
+            <td>${task.assignee}</td>
+            <td>${formatDate(task.deadline)}</td>
+            <td><span class="status-badge ${task.status}">${taskStatusLabels[task.status] || task.status}</span></td>
+            <td>${task.description || '-'}</td>
+            ${permissions.canEdit || permissions.canDelete ? `
+                <td>
+                    <div class="action-buttons">
+                        ${permissions.canEdit ? `<button class="btn btn-warning" data-task-action="edit" data-id="${task.id}">Edit</button>` : ''}
+                        ${permissions.canDelete ? `<button class="btn btn-danger" data-task-action="delete" data-id="${task.id}">Hapus</button>` : ''}
+                    </div>
+                </td>
+            ` : ''}
+        `;
+        taskTableBody.appendChild(row);
+    });
+}
+
+function renderInventoryTable(category = 'all', searchTerm = '') {
+    if (!inventoryTableBody) return;
+    inventoryTableBody.innerHTML = '';
+    const permissions = rolePermissions[currentRole] || {};
+
+    if (inventoryActionHeader) {
+        inventoryActionHeader.style.display = (permissions.canEdit || permissions.canDelete) ? '' : 'none';
+    }
+
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const filtered = inventoryData.filter(item => {
+        const matchCategory = category === 'all' ? true : item.category === category;
+        const matchSearch = normalizedSearch ? item.name.toLowerCase().includes(normalizedSearch) : true;
+        return matchCategory && matchSearch;
+    });
+
+    if (filtered.length === 0) {
+        const row = document.createElement('tr');
+        const colSpan = (permissions.canEdit || permissions.canDelete) ? 8 : 7;
+        row.innerHTML = `<td colspan="${colSpan}" style="text-align:center; padding:24px; color:var(--text-light);">Tidak ada data inventaris</td>`;
+        inventoryTableBody.appendChild(row);
+        return;
+    }
+
+    filtered.forEach(item => {
+        const remaining = remainingStock(item);
+        const statusText = stockStatus(item);
+        const lowStock = remaining <= item.initialStock * 0.25;
+        const statusClass = lowStock ? 'gagal' : 'sukses';
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${item.id}</td>
+            <td>${item.name}</td>
+            <td>${item.category}</td>
+            <td>${item.initialStock}</td>
+            <td>${item.usage}</td>
+            <td>${remaining}</td>
+            <td>${item.unit}</td>
+            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+            ${permissions.canEdit || permissions.canDelete ? `
+                <td>
+                    <div class="action-buttons">
+                        ${permissions.canEdit ? `<button class="btn btn-warning" data-inventory-action="edit" data-id="${item.id}">Edit</button>` : ''}
+                        ${permissions.canDelete ? `<button class="btn btn-danger" data-inventory-action="delete" data-id="${item.id}">Hapus</button>` : ''}
+                    </div>
+                </td>
+            ` : ''}
+        `;
+        inventoryTableBody.appendChild(row);
+    });
+}
+
+function updateAccessControls() {
+    const permissions = rolePermissions[currentRole] || {};
+    if (addProductionBtn) addProductionBtn.hidden = !permissions.canAdd;
+    if (addTaskBtn) addTaskBtn.style.display = permissions.canAdd ? '' : 'none';
+    if (addInventoryBtn) addInventoryBtn.style.display = permissions.canAdd ? '' : 'none';
+}
+
+function openProductionModal(title = 'Tambah Produksi Baru') {
+    editingProductionId = null;
+    productionForm?.reset();
+    const titleEl = $('modalTitle');
+    if (titleEl) titleEl.textContent = title;
+    if ($('productionDate')) $('productionDate').valueAsDate = new Date();
+    productionModal?.classList.add('active');
+}
+
+function showDashboard() {
+    if (!dashboardPage || !loginPage) return;
+    loginPage.classList.remove('active');
+    dashboardPage.classList.add('active');
+    if (currentUserEl) currentUserEl.textContent = currentUser || '';
+    if (currentRoleEl) currentRoleEl.textContent = currentRole || '';
+    loginError.textContent = '';
+    updateAccessControls();
+    updateStatistics();
+    renderProductionTable(statusFilter ? statusFilter.value : 'all');
+    renderTaskTable(taskStatusFilter ? taskStatusFilter.value : 'all');
+    renderInventoryTable(
+        inventoryCategoryFilter ? inventoryCategoryFilter.value : 'all',
+        inventorySearchInput ? inventorySearchInput.value : ''
+    );
+}
+
+function showLoginPage() {
+    if (!dashboardPage || !loginPage) return;
+    dashboardPage.classList.remove('active');
+    loginPage.classList.add('active');
+    currentUser = null;
+    currentRole = null;
+    if (currentUserEl) currentUserEl.textContent = '';
+    if (currentRoleEl) currentRoleEl.textContent = '';
+}
+
+function restoreSession() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.session));
+        if (stored?.username && stored?.role && defaultUsers[stored.role]) {
+            currentUser = stored.username;
+            currentRole = stored.role;
+            showDashboard();
             return;
         }
-        if (editingId) {
-            // Update existing production
-            const index = productionData.findIndex(p => p.id === editingId);
-            if (index !== -1) { 
-                productionData[index] = {
-                    ...productionData[index],
-                    name,
-                    date,
-                    status,
-                    notes,
-                    nutrientType,
-                    nutrientAmount
-                };
-            }
-        } else {
-            // Add new production
-            const newId = productionData.length > 0
-                ? Math.max(...productionData.map(p => p.id)) + 1
-                : 1;
-        productionData.push({
-                id: newId,
+    } catch {
+        // ignore
+    }
+    showLoginPage();
+}
+
+function handleLogin(event) {
+    event.preventDefault();
+    const username = usernameInput?.value.trim().toLowerCase();
+    const password = passwordInput?.value;
+    const role = roleSelect?.value;
+
+    if (!username || !password || !role) {
+        loginError.textContent = 'Lengkapi semua field login terlebih dahulu.';
+        return;
+    }
+
+    const expectedUser = defaultUsers[role];
+    if (!expectedUser || expectedUser.username !== username || expectedUser.password !== password) {
+        loginError.textContent = 'Username, password, atau jabatan tidak sesuai.';
+        return;
+    }
+
+    currentUser = username;
+    currentRole = role;
+    localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({ username, role }));
+    loginForm.reset();
+    showDashboard();
+}
+
+function handleLogout() {
+    localStorage.removeItem(STORAGE_KEYS.session);
+    showLoginPage();
+}
+
+// Event bindings
+loginForm?.addEventListener('submit', handleLogin);
+logoutBtn?.addEventListener('click', handleLogout);
+
+addProductionBtn?.addEventListener('click', () => {
+    editingProductionId = null;
+    openProductionModal('Tambah Produksi Baru');
+});
+productionModalClose?.addEventListener('click', () => productionModal?.classList.remove('active'));
+productionCancelBtn?.addEventListener('click', () => productionModal?.classList.remove('active'));
+
+productionForm?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const name = $('productionName').value.trim();
+    const date = $('productionDate').value;
+    const status = $('productionStatus').value;
+    const notes = $('productionNotes').value;
+    const nutrientType = $('productionNutrientType').value.trim();
+    const nutrientAmount = parseFloat($('productionNutrientAmount').value) || 0;
+
+    if (!name || !date || !status) {
+        alert('Nama, tanggal, dan status wajib diisi.');
+        return;
+    }
+
+    if (editingProductionId) {
+        const idx = productionData.findIndex(item => item.id === editingProductionId);
+        if (idx !== -1) {
+            productionData[idx] = {
+                ...productionData[idx],
                 name,
                 date,
                 status,
                 notes,
                 nutrientType,
                 nutrientAmount
-            });
+            };
         }
-        localStorage.setItem('productionData', JSON.stringify(productionData));
-        updateStatistics();
-        renderProductionTable(statusFilter ? statusFilter.value : 'all');
-        if (productionModal) productionModal.classList.remove('active');
-        if (productionForm) productionForm.reset();
-    });
-}
-
-// Edit Production
-window.editProduction = function(id) {
-    const production = productionData.find(p => p.id === id);
-    if (production) {
-        editingId = id;
-        if ($('productionName')) $('productionName').value = production.name;
-        if ($('productionDate')) $('productionDate').value = production.date; 
-        if ($('productionStatus')) $('productionStatus').value = production.status;
-        if ($('productionNotes')) $('productionNotes').value = production.notes || '';
-        if ($('productionNutrientType')) $('productionNutrientType').value = production.nutrientType || '';
-        if ($('productionNutrientAmount')) $('productionNutrientAmount').value =
-            (typeof production.nutrientAmount === 'number' ? production.nutrientAmount : '');
-        if ($('modalTitle')) $('modalTitle').textContent = 'Edit Produksi';
-        if (productionModal) productionModal.classList.add('active');
+    } else {
+        const newId = productionData.length ? Math.max(...productionData.map(item => item.id)) + 1 : 1;
+        productionData.push({
+            id: newId,
+            name,
+            date,
+            status,
+            notes,
+            nutrientType,
+            nutrientAmount
+        });
     }
-};
 
-// Delete Production
-window.deleteProduction = function(id) {
-    if (confirm('Apakah Anda yakin ingin menghapus data produksi ini?')) {
-        productionData = productionData.filter(p => p.id !== id);
-        localStorage.setItem('productionData', JSON.stringify(productionData));
-        updateStatistics();
+    persistArray(STORAGE_KEYS.production, productionData);
+    productionModal?.classList.remove('active');
+    renderProductionTable(statusFilter ? statusFilter.value : 'all');
+    updateStatistics();
+});
+
+productionTableBody?.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const action = target.dataset.action;
+    if (!action) return;
+    const id = Number(target.dataset.id);
+    if (action === 'edit') {
+        const production = productionData.find(item => item.id === id);
+        if (!production) return;
+        editingProductionId = id;
+        $('productionName').value = production.name;
+        $('productionDate').value = production.date;
+        $('productionStatus').value = production.status;
+        $('productionNotes').value = production.notes || '';
+        $('productionNutrientType').value = production.nutrientType || '';
+        $('productionNutrientAmount').value = typeof production.nutrientAmount === 'number'
+            ? production.nutrientAmount
+            : '';
+        const titleEl = $('modalTitle');
+        if (titleEl) titleEl.textContent = 'Edit Produksi';
+        productionModal?.classList.add('active');
+    } else if (action === 'delete') {
+        if (!confirm('Apakah Anda yakin ingin menghapus data produksi ini?')) return;
+        productionData = productionData.filter(item => item.id !== id);
+        persistArray(STORAGE_KEYS.production, productionData);
         renderProductionTable(statusFilter ? statusFilter.value : 'all');
+        updateStatistics();
     }
-};
+});
 
-// Task Status Labels
-const taskStatusLabels = {
-    belum: 'Belum Dikerjakan',
-    sedang: 'Sedang Dikerjakan',
-    selesai: 'Selesai Dikerjakan'
-};
+statusFilter?.addEventListener('change', (event) => {
+    renderProductionTable(event.target.value);
+});
 
-// Update Task Statistics
-function updateTaskStatistics() {
-    const belum = taskData.filter(t => t.status === 'belum').length;
-    const sedang = taskData.filter(t => t.status === 'sedang').length;
-    const selesai = taskData.filter(t => t.status === 'selesai').length;
+taskStatusFilter?.addEventListener('change', (event) => {
+    renderTaskTable(event.target.value);
+});
 
-    if (totalTaskBelum) totalTaskBelum.textContent = belum;
+addTaskBtn?.addEventListener('click', () => {
+    editingTaskId = null;
+    taskForm?.reset();
+    const titleEl = $('taskModalTitle');
+    if (titleEl) titleEl.textContent = 'Tambah Tugas Baru';
+    taskModal?.classList.add('active');
+});
+
+taskModalClose?.addEventListener('click', () => taskModal?.classList.remove('active'));
+taskCancelBtn?.addEventListener('click', () => taskModal?.classList.remove('active'));
+
+taskForm?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const title = $('taskTitle').value.trim();
+    const assignee = $('taskAssignee').value.trim();
+    const deadline = $('taskDeadline').value;
+    const status = $('taskStatus').value;
+    const description = $('taskDescription').value.trim();
+
+    if (!title || !assignee || !deadline) {
+        alert('Judul, penanggung jawab, dan deadline wajib diisi.');
+        return;
+    }
+
+    if (editingTaskId) {
+        const idx = taskData.findIndex(task => task.id === editingTaskId);
+        if (idx !== -1) {
+            taskData[idx] = { ...taskData[idx], title, assignee, deadline, status, description };
+        }
+    } else {
+        const newId = taskData.length ? Math.max(...taskData.map(task => task.id)) + 1 : 1;
+        taskData.push({ id: newId, title, assignee, deadline, status, description });
+    }
+
+    persistArray(STORAGE_KEYS.tasks, taskData);
+    taskModal?.classList.remove('active');
+    renderTaskTable(taskStatusFilter ? taskStatusFilter.value : 'all');
+    updateStatistics();
+});
+
+taskTableBody?.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const action = target.dataset.taskAction;
+    if (!action) return;
+    const id = Number(target.dataset.id);
+    if (action === 'edit') {
+        const task = taskData.find(item => item.id === id);
+        if (!task) return;
+        editingTaskId = id;
+        $('taskTitle').value = task.title;
+        $('taskAssignee').value = task.assignee;
+        $('taskDeadline').value = task.deadline;
+        $('taskStatus').value = task.status;
+        $('taskDescription').value = task.description || '';
+        const titleEl = $('taskModalTitle');
+        if (titleEl) titleEl.textContent = 'Edit Tugas';
+        taskModal?.classList.add('active');
+    } else if (action === 'delete') {
+        if (!confirm('Apakah Anda yakin ingin menghapus tugas ini?')) return;
+        taskData = taskData.filter(task => task.id !== id);
+        persistArray(STORAGE_KEYS.tasks, taskData);
+        renderTaskTable(taskStatusFilter ? taskStatusFilter.value : 'all');
+        updateStatistics();
+    }
+});
+
+addInventoryBtn?.addEventListener('click', () => {
+    editingInventoryId = null;
+    inventoryForm?.reset();
+    const titleEl = $('inventoryModalTitle');
+    if (titleEl) titleEl.textContent = 'Tambah Bahan Baru';
+    inventoryModal?.classList.add('active');
+});
+
+inventoryModalClose?.addEventListener('click', () => inventoryModal?.classList.remove('active'));
+inventoryCancelBtn?.addEventListener('click', () => inventoryModal?.classList.remove('active'));
+
+inventoryForm?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const name = $('inventoryName').value.trim();
+    const category = $('inventoryCategory').value;
+    const initialStock = parseFloat($('inventoryInitialStock').value) || 0;
+    const unit = $('inventoryUnit').value.trim();
+    const usage = parseFloat($('inventoryUsage').value) || 0;
+
+    if (!name || !category || !unit) {
+        alert('Nama bahan, kategori, dan satuan wajib diisi.');
+        return;
+    }
+
+    const payload = { name, category, initialStock, unit, usage };
+
+    if (editingInventoryId) {
+        const idx = inventoryData.findIndex(item => item.id === editingInventoryId);
+        if (idx !== -1) {
+            inventoryData[idx] = { ...inventoryData[idx], ...payload };
+        }
+    } else {
+        const newId = inventoryData.length ? Math.max(...inventoryData.map(item => item.id)) + 1 : 1;
+        inventoryData.push({ id: newId, ...payload });
+    }
+
+    persistArray(STORAGE_KEYS.inventory, inventoryData);
+    inventoryModal?.classList.remove('active');
+    renderInventoryTable(
+        inventoryCategoryFilter ? inventoryCategoryFilter.value : 'all',
+        inventorySearchInput ? inventorySearchInput.value : ''
+    );
+    updateStatistics();
+});
+
+inventoryTableBody?.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const action = target.dataset.inventoryAction;
+    if (!action) return;
+    const id = Number(target.dataset.id);
+    if (action === 'edit') {
+        const item = inventoryData.find(entry => entry.id === id);
+        if (!item) return;
+        editingInventoryId = id;
+        $('inventoryName').value = item.name;
+        $('inventoryCategory').value = item.category;
+        $('inventoryInitialStock').value = item.initialStock;
+        $('inventoryUnit').value = item.unit;
+        $('inventoryUsage').value = item.usage;
+        const titleEl = $('inventoryModalTitle');
+        if (titleEl) titleEl.textContent = 'Edit Bahan';
+        inventoryModal?.classList.add('active');
+    } else if (action === 'delete') {
+        if (!confirm('Apakah Anda yakin ingin menghapus bahan ini?')) return;
+        inventoryData = inventoryData.filter(entry => entry.id !== id);
+        persistArray(STORAGE_KEYS.inventory, inventoryData);
+        renderInventoryTable(
+            inventoryCategoryFilter ? inventoryCategoryFilter.value : 'all',
+            inventorySearchInput ? inventorySearchInput.value : ''
+        );
+        updateStatistics();
+    }
+});
+
+inventoryCategoryFilter?.addEventListener('change', (event) => {
+    renderInventoryTable(event.target.value, inventorySearchInput ? inventorySearchInput.value : '');
+});
+
+inventorySearchInput?.addEventListener('input', (event) => {
+    renderInventoryTable(
+        inventoryCategoryFilter ? inventoryCategoryFilter.value : 'all',
+        event.target.value
+    );
+});
+
+// Initialize
+seedData();
+restoreSession();
 
