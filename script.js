@@ -16,6 +16,17 @@ const STORAGE_KEYS = {
     tasks: 'taskData',
     inventory: 'inventoryData'
 };
+const DATA_STORAGE_KEYS = [
+    STORAGE_KEYS.production,
+    STORAGE_KEYS.tasks,
+    STORAGE_KEYS.inventory
+];
+
+const CLIENT_ID = `nah-client-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const SYNC_CHANNEL = 'nah-app-sync-channel';
+const broadcastChannel = typeof BroadcastChannel !== 'undefined'
+    ? new BroadcastChannel(SYNC_CHANNEL)
+    : null;
 
 // Default users for demo (in production, this should be server-side authentication)
 const defaultUsers = {
@@ -117,7 +128,37 @@ const inventoryModalClose = inventoryModal?.querySelector('.close-inventory');
 const inventoryCancelBtn = $('cancelInventoryBtn');
 
 // Utility helpers
-const persistArray = (key, data) => localStorage.setItem(key, JSON.stringify(data));
+const publishSync = (key) => {
+    if (!key) return;
+    try {
+        broadcastChannel?.postMessage({ key, senderId: CLIENT_ID, timestamp: Date.now() });
+    } catch (error) {
+        console.warn('Gagal mengirim pesan sinkronisasi', error);
+    }
+};
+
+const persistArray = (key, data) => {
+    try {
+        localStorage.setItem(key, JSON.stringify(data));
+        publishSync(key);
+    } catch (error) {
+        console.error('Gagal menyimpan data ke localStorage', error);
+    }
+};
+
+const persistSession = (sessionData) => {
+    try {
+        if (sessionData) {
+            localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(sessionData));
+        } else {
+            localStorage.removeItem(STORAGE_KEYS.session);
+        }
+        publishSync(STORAGE_KEYS.session);
+    } catch (error) {
+        console.error('Gagal memperbarui sesi', error);
+    }
+};
+
 const loadArray = (key) => {
     try {
         const parsed = JSON.parse(localStorage.getItem(key));
@@ -242,6 +283,24 @@ function seedData() {
         ];
         persistArray(STORAGE_KEYS.inventory, inventoryData);
     }
+}
+
+function hydrateCollectionsFromStorage() {
+    productionData = loadArray(STORAGE_KEYS.production);
+    taskData = loadArray(STORAGE_KEYS.tasks);
+    inventoryData = loadArray(STORAGE_KEYS.inventory);
+}
+
+function refreshDashboardTables() {
+    if (!dashboardPage?.classList.contains('active')) return;
+    updateAccessControls();
+    updateStatistics();
+    renderProductionTable(statusFilter ? statusFilter.value : 'all');
+    renderTaskTable(taskStatusFilter ? taskStatusFilter.value : 'all');
+    renderInventoryTable(
+        inventoryCategoryFilter ? inventoryCategoryFilter.value : 'all',
+        inventorySearchInput ? inventorySearchInput.value : ''
+    );
 }
 
 function formatDate(dateString) {
@@ -449,14 +508,7 @@ function showDashboard() {
     if (currentUserEl) currentUserEl.textContent = currentUser || '';
     if (currentRoleEl) currentRoleEl.textContent = currentRole || '';
     loginError.textContent = '';
-    updateAccessControls();
-    updateStatistics();
-    renderProductionTable(statusFilter ? statusFilter.value : 'all');
-    renderTaskTable(taskStatusFilter ? taskStatusFilter.value : 'all');
-    renderInventoryTable(
-        inventoryCategoryFilter ? inventoryCategoryFilter.value : 'all',
-        inventorySearchInput ? inventorySearchInput.value : ''
-    );
+    refreshDashboardTables();
 }
 
 function showLoginPage() {
@@ -467,6 +519,33 @@ function showLoginPage() {
     currentRole = null;
     if (currentUserEl) currentUserEl.textContent = '';
     if (currentRoleEl) currentRoleEl.textContent = '';
+}
+
+function handleExternalStateChange(key) {
+    if (!key) return;
+    if (key === STORAGE_KEYS.session) {
+        restoreSession();
+        return;
+    }
+    if (!DATA_STORAGE_KEYS.includes(key)) return;
+    hydrateCollectionsFromStorage();
+    refreshDashboardTables();
+}
+
+function setupRealtimeSync() {
+    if (typeof window === 'undefined') return;
+    window.addEventListener('storage', (event) => {
+        if (!event || event.storageArea !== localStorage) return;
+        handleExternalStateChange(event.key);
+    });
+
+    if (broadcastChannel) {
+        broadcastChannel.addEventListener('message', (event) => {
+            const { key, senderId } = event.data || {};
+            if (!key || senderId === CLIENT_ID) return;
+            handleExternalStateChange(key);
+        });
+    }
 }
 
 function restoreSession() {
@@ -503,13 +582,13 @@ function handleLogin(event) {
 
     currentUser = username;
     currentRole = role;
-    localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({ username, role }));
+    persistSession({ username, role });
     loginForm.reset();
     showDashboard();
 }
 
 function handleLogout() {
-    localStorage.removeItem(STORAGE_KEYS.session);
+    persistSession(null);
     showLoginPage();
 }
 
@@ -764,4 +843,4 @@ inventorySearchInput?.addEventListener('input', (event) => {
 // Initialize
 seedData();
 restoreSession();
-
+setupRealtimeSync();
