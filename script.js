@@ -844,3 +844,12 @@ inventorySearchInput?.addEventListener('input', (event) => {
 seedData();
 restoreSession();
 setupRealtimeSync();
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js').catch((error) => {
+            console.error('Registrasi service worker gagal:', error);
+        });
+    });
+}
+
