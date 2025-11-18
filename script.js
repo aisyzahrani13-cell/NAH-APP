@@ -193,9 +193,9 @@ function renderProductionTable(filterStatus = 'all') {
         filteredData = productionData.filter(p => p.status === filterStatus);
     }
  const baseColumnCount = 7; // ID, Nama, Tanggal, Status, Catatan, Nutrisi Jenis, Nutrisi Jumlah
-    const totalColumns = (permissions.canEdit || permissions.canDelete) ? baseColumnCount + 1 : baseColumnCount;
+ const totalColumns = (permissions.canEdit || permissions.canDelete) ? baseColumnCount + 1 : baseColumnCount;
 
-    if (filteredData.length === 0) {
+ if (filteredData.length === 0) {
         productionTableBody.innerHTML = `
             <tr>
                 <td colspan="${totalColumns}" style="text-align: center; padding: 30px; color: var(--text-light);">
@@ -276,7 +276,7 @@ window.addEventListener('click', (e) => {
 if (productionForm) {
     productionForm.addEventListener('submit', (e) => {
         e.preventDefault();
-      const name = $('productionName').value.trim();
+        const name = $('productionName').value.trim();
         const date = $('productionDate').value;
         const status = $('productionStatus').value;
         const notes = $('productionNotes').value;
@@ -291,7 +291,7 @@ if (productionForm) {
             // Update existing production
             const index = productionData.findIndex(p => p.id === editingId);
             if (index !== -1) { 
-productionData[index] = {
+                productionData[index] = {
                     ...productionData[index],
                     name,
                     date,
@@ -365,3 +365,4 @@ function updateTaskStatistics() {
     const selesai = taskData.filter(t => t.status === 'selesai').length;
 
     if (totalTaskBelum) totalTaskBelum.textContent = belum;
+
