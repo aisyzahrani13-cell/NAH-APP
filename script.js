@@ -9,17 +9,20 @@ let inventoryData = [];
 let editingProductionId = null;
 let editingTaskId = null;
 let editingInventoryId = null;
+let customUsers = [];
 
 const STORAGE_KEYS = {
     session: 'nah-session',
     production: 'productionData',
     tasks: 'taskData',
-    inventory: 'inventoryData'
+    inventory: 'inventoryData',
+    users: 'nah-users'
 };
 const DATA_STORAGE_KEYS = [
     STORAGE_KEYS.production,
     STORAGE_KEYS.tasks,
-    STORAGE_KEYS.inventory
+    STORAGE_KEYS.inventory,
+    STORAGE_KEYS.users
 ];
 
 const CLIENT_ID = `nah-client-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -40,6 +43,30 @@ const defaultUsers = {
     staff: [
         { username: 'staff', password: 'staff123', role: 'staff' }
     ]
+};
+
+const getAllUsers = () => {
+    const baseUsers = Object.values(defaultUsers).flat();
+    return [...baseUsers, ...customUsers];
+};
+
+const normalizeUser = (user) => {
+    if (!user?.username || !user?.password || !user?.role) return null;
+    const role = user.role.toLowerCase();
+    if (!rolePermissions[role]) return null;
+
+    return {
+        username: user.username.trim().toLowerCase(),
+        password: user.password,
+        role
+    };
+};
+
+const hydrateCustomUsers = () => {
+    const storedUsers = loadArray(STORAGE_KEYS.users);
+    customUsers = storedUsers
+        .map(normalizeUser)
+        .filter(Boolean);
 };
 
 // Role Permissions
@@ -86,6 +113,11 @@ const loginPage = $('loginPage');
 const dashboardPage = $('dashboardPage');
 const loginForm = $('loginForm');
 const loginError = $('loginError');
+const registerForm = $('registerForm');
+const registerMessage = $('registerMessage');
+const registerUsernameInput = $('registerUsername');
+const registerPasswordInput = $('registerPassword');
+const registerRoleSelect = $('registerRole');
 const usernameInput = $('username');
 const passwordInput = $('password');
 const roleSelect = $('role');
@@ -164,6 +196,15 @@ const persistSession = (sessionData) => {
         publishSync(STORAGE_KEYS.session);
     } catch (error) {
         console.error('Gagal memperbarui sesi', error);
+    }
+};
+
+const persistCustomUsers = () => {
+    try {
+        localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(customUsers));
+        publishSync(STORAGE_KEYS.users);
+    } catch (error) {
+        console.error('Gagal menyimpan akun baru', error);
     }
 };
 
@@ -534,12 +575,17 @@ function showLoginPage() {
         loginError.textContent = '';
         loginError.classList.remove('show');
     }
+    showRegisterMessage('');
 }
 
 function handleExternalStateChange(key) {
     if (!key) return;
     if (key === STORAGE_KEYS.session) {
         restoreSession();
+        return;
+    }
+    if (key === STORAGE_KEYS.users) {
+        hydrateCustomUsers();
         return;
     }
     if (!DATA_STORAGE_KEYS.includes(key)) return;
@@ -563,13 +609,26 @@ function setupRealtimeSync() {
     }
 }
 
-function restoreSession() {␊
-    try {␊
-        const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.session));␊
-        if (stored?.username && stored?.role && defaultUsers[stored.role]) {␊
-            const matchedUser = defaultUsers[stored.role].find(␊
-                (user) => user.username === stored.username
-            );
+const findUserByCredentials = (username, password, role) =>
+    getAllUsers().find(
+        (user) =>
+            user.username === username &&
+            user.password === password &&
+            user.role === role
+    );
+
+const findUserByIdentity = (username, role) =>
+    getAllUsers().find(
+        (user) =>
+            user.username === username &&
+            user.role === role
+    );
+
+function restoreSession() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.session));
+        if (stored?.username && stored?.role) {
+            const matchedUser = findUserByIdentity(stored.username, stored.role);
 
             if (matchedUser) {
                 currentUser = matchedUser.username;
@@ -594,12 +653,19 @@ function showLoginError(message) {
     }
 }
 
+function showRegisterMessage(message, type = 'info') {
+    if (!registerMessage) return;
+    registerMessage.textContent = message;
+    registerMessage.dataset.type = message ? type : '';
+}
+
 function resetAppData() {
     try {
         Object.values(STORAGE_KEYS).forEach((key) => {
             localStorage.removeItem(key);
             publishSync(key);
         });
+        customUsers = [];
         loginError?.classList.remove('show');
         showLoginPage();
         alert('Cache dan data lokal sudah dihapus. Silakan login ulang dengan akun demo.');
@@ -620,9 +686,7 @@ function handleLogin(event) {
         return;
     }
 
-    const matchedUser = defaultUsers[role]?.find(
-        (user) => user.username === username && user.password === password
-    );
+    const matchedUser = findUserByCredentials(username, password, role);
 
     if (!matchedUser) {
         showLoginError('Username, password, atau jabatan tidak sesuai.');
@@ -636,6 +700,39 @@ function handleLogin(event) {
     showDashboard();
 }
 
+function handleRegister(event) {
+    event.preventDefault();
+
+    const username = registerUsernameInput?.value.trim().toLowerCase();
+    const password = registerPasswordInput?.value;
+    const role = registerRoleSelect?.value;
+
+    if (!username || !password || !role) {
+        showRegisterMessage('Lengkapi semua field untuk membuat akun baru.', 'error');
+        return;
+    }
+
+    if (findUserByIdentity(username, role)) {
+        showRegisterMessage('Username sudah terdaftar untuk jabatan tersebut.', 'error');
+        return;
+    }
+
+    const normalizedUser = normalizeUser({ username, password, role });
+    if (!normalizedUser) {
+        showRegisterMessage('Data akun tidak valid. Periksa kembali.', 'error');
+        return;
+    }
+
+    customUsers.push(normalizedUser);
+    persistCustomUsers();
+    registerForm?.reset();
+    if (usernameInput) usernameInput.value = normalizedUser.username;
+    if (passwordInput) passwordInput.value = '';
+    if (roleSelect) roleSelect.value = normalizedUser.role;
+    showRegisterMessage('Akun berhasil dibuat. Silakan login menggunakan kredensial baru.', 'success');
+    showLoginError('');
+}
+
 function handleLogout() {
     persistSession(null);
     showLoginPage();
@@ -643,6 +740,7 @@ function handleLogout() {
 
 // Event bindings
 loginForm?.addEventListener('submit', handleLogin);
+registerForm?.addEventListener('submit', handleRegister);
 logoutBtn?.addEventListener('click', handleLogout);
 resetAppDataBtn?.addEventListener('click', resetAppData);
 
@@ -892,6 +990,7 @@ inventorySearchInput?.addEventListener('input', (event) => {
 
 // Initialize
 seedData();
+hydrateCustomUsers();
 restoreSession();
 setupRealtimeSync();
 
@@ -902,7 +1001,6 @@ if ('serviceWorker' in navigator) {
         });
     });
 }
-
 
 
 
