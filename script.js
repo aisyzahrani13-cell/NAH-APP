@@ -30,9 +30,16 @@ const broadcastChannel = typeof BroadcastChannel !== 'undefined'
 
 // Default users for demo (in production, this should be server-side authentication)
 const defaultUsers = {
-    supervisor: { username: 'supervisor', password: 'supervisor123', role: 'supervisor' },
-    operator: { username: 'operator', password: 'operator123', role: 'operator' },
-    staff: { username: 'staff', password: 'staff123', role: 'staff' }
+    supervisor: [
+        { username: 'supervisor', password: 'supervisor123', role: 'supervisor' },
+        { username: 'nah_monitoring', password: 'lisasarasari', role: 'supervisor' }
+    ],
+    operator: [
+        { username: 'operator', password: 'operator123', role: 'operator' }
+    ],
+    staff: [
+        { username: 'staff', password: 'staff123', role: 'staff' }
+    ]
 };
 
 // Role Permissions
@@ -552,10 +559,16 @@ function restoreSession() {
     try {
         const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.session));
         if (stored?.username && stored?.role && defaultUsers[stored.role]) {
-            currentUser = stored.username;
-            currentRole = stored.role;
-            showDashboard();
-            return;
+            const matchedUser = defaultUsers[stored.role].find(
+                (user) => user.username === stored.username
+            );
+
+            if (matchedUser) {
+                currentUser = matchedUser.username;
+                currentRole = matchedUser.role;
+                showDashboard();
+                return;
+            }
         }
     } catch {
         // ignore
@@ -574,15 +587,18 @@ function handleLogin(event) {
         return;
     }
 
-    const expectedUser = defaultUsers[role];
-    if (!expectedUser || expectedUser.username !== username || expectedUser.password !== password) {
+    const matchedUser = defaultUsers[role]?.find(
+        (user) => user.username === username && user.password === password
+    );
+
+    if (!matchedUser) {
         loginError.textContent = 'Username, password, atau jabatan tidak sesuai.';
         return;
     }
 
-    currentUser = username;
-    currentRole = role;
-    persistSession({ username, role });
+    currentUser = matchedUser.username;
+    currentRole = matchedUser.role;
+    persistSession({ username: matchedUser.username, role: matchedUser.role });
     loginForm.reset();
     showDashboard();
 }
@@ -852,4 +868,5 @@ if ('serviceWorker' in navigator) {
         });
     });
 }
+
 
