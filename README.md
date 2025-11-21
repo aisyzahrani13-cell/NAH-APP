@@ -15,3 +15,8 @@ Dashboard monitoring produksi hidroponik NAH dengan autentikasi role-based seder
 1. Buka dashboard di browser yang mendukung PWA (Chrome, Edge, dll.).
 2. Klik opsi "Install App" / "Tambahkan ke layar utama" yang muncul di address bar atau menu browser.
 3. Setelah terpasang, aplikasi dapat dijalankan seperti aplikasi native dan mendukung mode offline dasar berkat service worker.
+
+## Penggunaan di Smartphone
+- Tampilan login, dashboard, dan tabel sudah dioptimalkan untuk layar sentuh dan akan merapat secara otomatis di layar kecil.
+- Form dan tombol dibikin penuh-lebar di perangkat seluler agar mudah disentuh.
+- Kamu bisa menambahkan aplikasi ke home screen agar tampil penuh layar tanpa address bar menggunakan manifest dan service worker bawaan.
