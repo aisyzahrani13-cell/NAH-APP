@@ -92,6 +92,7 @@ const roleSelect = $('role');
 const currentUserEl = $('currentUser');
 const currentRoleEl = $('currentRole');
 const logoutBtn = $('logoutBtn');
+const resetAppDataBtn = $('resetAppData');
 
 const totalProduksiEl = $('totalProduksi');
 const totalSuksesEl = $('totalSukses');
@@ -514,7 +515,10 @@ function showDashboard() {
     dashboardPage.classList.add('active');
     if (currentUserEl) currentUserEl.textContent = currentUser || '';
     if (currentRoleEl) currentRoleEl.textContent = currentRole || '';
-    loginError.textContent = '';
+    if (loginError) {
+        loginError.textContent = '';
+        loginError.classList.remove('show');
+    }
     refreshDashboardTables();
 }
 
@@ -526,6 +530,10 @@ function showLoginPage() {
     currentRole = null;
     if (currentUserEl) currentUserEl.textContent = '';
     if (currentRoleEl) currentRoleEl.textContent = '';
+    if (loginError) {
+        loginError.textContent = '';
+        loginError.classList.remove('show');
+    }
 }
 
 function handleExternalStateChange(key) {
@@ -555,11 +563,11 @@ function setupRealtimeSync() {
     }
 }
 
-function restoreSession() {
-    try {
-        const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.session));
-        if (stored?.username && stored?.role && defaultUsers[stored.role]) {
-            const matchedUser = defaultUsers[stored.role].find(
+function restoreSession() {␊
+    try {␊
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.session));␊
+        if (stored?.username && stored?.role && defaultUsers[stored.role]) {␊
+            const matchedUser = defaultUsers[stored.role].find(␊
                 (user) => user.username === stored.username
             );
 
@@ -576,23 +584,48 @@ function restoreSession() {
     showLoginPage();
 }
 
-function handleLogin(event) {␊
-    event.preventDefault();␊
-    const username = usernameInput?.value.trim().toLowerCase();␊
-    const password = passwordInput?.value.trim();
-    const role = roleSelect?.value.trim().toLowerCase();
-␊
-    if (!username || !password || !role) {␊
-        loginError.textContent = 'Lengkapi semua field login terlebih dahulu.';␊
-        return;␊
-    }␊
-␊
-    const matchedUser = defaultUsers[role]?.find(␊
-        (user) => user.username === username && user.password === password␊
-    );␊
+function showLoginError(message) {
+    if (!loginError) return;
+    loginError.textContent = message;
+    if (message) {
+        loginError.classList.add('show');
+    } else {
+        loginError.classList.remove('show');
+    }
+}
+
+function resetAppData() {
+    try {
+        Object.values(STORAGE_KEYS).forEach((key) => {
+            localStorage.removeItem(key);
+            publishSync(key);
+        });
+        loginError?.classList.remove('show');
+        showLoginPage();
+        alert('Cache dan data lokal sudah dihapus. Silakan login ulang dengan akun demo.');
+    } catch (error) {
+        console.error('Gagal mereset data aplikasi', error);
+        showLoginError('Gagal mereset data aplikasi. Coba lagi.');
+    }
+}
+
+function handleLogin(event) {
+    event.preventDefault();
+    const username = usernameInput?.value.trim().toLowerCase();
+    const password = passwordInput?.value;
+    const role = roleSelect?.value;
+
+    if (!username || !password || !role) {
+        showLoginError('Lengkapi semua field login terlebih dahulu.');
+        return;
+    }
+
+    const matchedUser = defaultUsers[role]?.find(
+        (user) => user.username === username && user.password === password
+    );
 
     if (!matchedUser) {
-        loginError.textContent = 'Username, password, atau jabatan tidak sesuai.';
+        showLoginError('Username, password, atau jabatan tidak sesuai.');
         return;
     }
 
@@ -611,6 +644,7 @@ function handleLogout() {
 // Event bindings
 loginForm?.addEventListener('submit', handleLogin);
 logoutBtn?.addEventListener('click', handleLogout);
+resetAppDataBtn?.addEventListener('click', resetAppData);
 
 addProductionBtn?.addEventListener('click', () => {
     editingProductionId = null;
@@ -868,6 +902,7 @@ if ('serviceWorker' in navigator) {
         });
     });
 }
+
 
 
 
