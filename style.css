@@ -118,9 +118,15 @@ body {
     border: 1px solid #e0efe7;
     border-radius: 10px;
     display: flex;
-    gap: 16px;
-    align-items: flex-start;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 12px;
+}
+
+@media (min-width: 768px) {
+    .login-helper {
+        flex-direction: row;
+        align-items: stretch;
+    }
 }
 
 .login-helper h3 {
@@ -137,7 +143,44 @@ body {
 }
 
 .login-helper button {
-    align-self: center;
+    align-self: stretch;
+}
+
+.helper-card {
+    flex: 1;
+    background: var(--white);
+    border: 1px dashed #d7e8de;
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.02);
+}
+
+.register-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.register-form .compact {
+    margin-bottom: 10px;
+}
+
+.helper-message {
+    font-size: 0.9rem;
+    min-height: 20px;
+    color: var(--text-light);
+}
+
+.helper-message[data-type="error"] {
+    color: var(--danger-color);
+}
+
+.helper-message[data-type="success"] {
+    color: var(--success-color);
+}
+
+.full-width {
+    width: 100%;
 }
 
 /* Buttons */
@@ -670,4 +713,5 @@ body {
 .close-usage:focus {
     opacity: 0.7;
 }
+
 
