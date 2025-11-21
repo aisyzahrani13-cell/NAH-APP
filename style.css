@@ -111,6 +111,35 @@ body {
     display: block;
 }
 
+.login-helper {
+    margin-top: 20px;
+    padding: 16px;
+    background: #f7fbf9;
+    border: 1px solid #e0efe7;
+    border-radius: 10px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.login-helper h3 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    color: var(--primary-color);
+}
+
+.login-helper ul {
+    margin: 0;
+    padding-left: 20px;
+    color: var(--text-dark);
+    line-height: 1.5;
+}
+
+.login-helper button {
+    align-self: center;
+}
+
 /* Buttons */
 .btn {
     padding: 12px 24px;
@@ -641,3 +670,4 @@ body {
 .close-usage:focus {
     opacity: 0.7;
 }
+
