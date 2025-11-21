@@ -576,20 +576,20 @@ function restoreSession() {
     showLoginPage();
 }
 
-function handleLogin(event) {
-    event.preventDefault();
-    const username = usernameInput?.value.trim().toLowerCase();
-    const password = passwordInput?.value;
-    const role = roleSelect?.value;
-
-    if (!username || !password || !role) {
-        loginError.textContent = 'Lengkapi semua field login terlebih dahulu.';
-        return;
-    }
-
-    const matchedUser = defaultUsers[role]?.find(
-        (user) => user.username === username && user.password === password
-    );
+function handleLogin(event) {␊
+    event.preventDefault();␊
+    const username = usernameInput?.value.trim().toLowerCase();␊
+    const password = passwordInput?.value.trim();
+    const role = roleSelect?.value.trim().toLowerCase();
+␊
+    if (!username || !password || !role) {␊
+        loginError.textContent = 'Lengkapi semua field login terlebih dahulu.';␊
+        return;␊
+    }␊
+␊
+    const matchedUser = defaultUsers[role]?.find(␊
+        (user) => user.username === username && user.password === password␊
+    );␊
 
     if (!matchedUser) {
         loginError.textContent = 'Username, password, atau jabatan tidak sesuai.';
@@ -868,5 +868,6 @@ if ('serviceWorker' in navigator) {
         });
     });
 }
+
 
 
