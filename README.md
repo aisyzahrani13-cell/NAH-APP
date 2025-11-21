@@ -9,7 +9,8 @@ Dashboard monitoring produksi hidroponik NAH dengan autentikasi role-based seder
    - Supervisor: `supervisor / supervisor123`
    - Operator: `operator / operator123`
    - Staff: `staff / staff123`
-
+4. Atau buat akun sendiri melalui formulir "Buat Akun Baru" di halaman login, lalu pilih jabatan yang sesuai sebelum masuk.
+   
 ## Instalasi sebagai Aplikasi
 1. Buka dashboard di browser yang mendukung PWA (Chrome, Edge, dll.).
 2. Klik opsi "Install App" / "Tambahkan ke layar utama" yang muncul di address bar atau menu browser.
