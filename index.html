@@ -42,7 +42,7 @@
                 </form>
                 <div id="loginError" class="error-message"></div>
                  <div class="login-helper">
-                    <div>
+                    <div class="helper-card">
                         <h3>Akun Demo</h3>
                         <ul>
                             <li><strong>Supervisor:</strong> supervisor / supervisor123</li>
@@ -50,8 +50,32 @@
                             <li><strong>Operator:</strong> operator / operator123</li>
                             <li><strong>Staff:</strong> staff / staff123</li>
                         </ul>
+                        <button type="button" id="resetAppData" class="btn btn-secondary full-width">Reset Cache &amp; Data Lokal</button>
                     </div>
-                    <button type="button" id="resetAppData" class="btn btn-secondary">Reset Cache &amp; Data Lokal</button>
+                    <div class="helper-card register-card">
+                        <h3>Buat Akun Baru</h3>
+                        <form id="registerForm" class="register-form">
+                            <div class="form-group compact">
+                                <label for="registerUsername">Username Baru</label>
+                                <input type="text" id="registerUsername" autocomplete="new-username" required>
+                            </div>
+                            <div class="form-group compact">
+                                <label for="registerPassword">Password</label>
+                                <input type="password" id="registerPassword" autocomplete="new-password" required>
+                            </div>
+                            <div class="form-group compact">
+                                <label for="registerRole">Jabatan</label>
+                                <select id="registerRole" required>
+                                    <option value="">Pilih Jabatan</option>
+                                    <option value="supervisor">Supervisor</option>
+                                    <option value="operator">Operator</option>
+                                    <option value="staff">Staff</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary full-width">Buat Akun</button>
+                        </form>
+                        <div id="registerMessage" class="helper-message"></div>
+                    </div>
                 </div>
             </div>
         </div>
